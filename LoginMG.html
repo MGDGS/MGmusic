@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script src="https://cdn.staticfile.org/vue/2.2.2/vue.min.js"></script>
+    <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link rel="shortcut icon" href="#">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100%;
+            height: 100%;
+            margin: auto;
+        }
+
+        .bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("img/Login.jpg") no-repeat fixed;
+            background-size: 100%;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            z-index: -1;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .bg:after {
+            content: "";
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: inherit;
+            filter: blur(5px);
+            z-index: -1;
+        }
+
+        .small-logo {
+            width: 100%;
+            height: 100px;
+            margin-top: 20px;
+            margin-bottom: -20px;
+        }
+
+        .small-logo img {
+            /* cursor: pointer;*/
+            opacity: 0.5;
+        }
+
+
+        .drag {
+            margin: auto;
+            /*transform: translate(-50%,-50%);*/
+            text-align: center;
+            width: 600px;
+            background: inherit;
+            box-shadow: 0 0 10px 6px rgba(0, 0, 0, .5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .userForm {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .userForm .title {
+            font-size: 30px;
+            font-weight: bold;
+            color: #e2e2e2;
+            margin: 20px;
+        }
+
+        .userForm input {
+            display: block;
+            width: 468px;
+            height: 50px;
+            font-size: 20px;
+            padding-left: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: none;
+            box-shadow: 1px 1px 10px 1px rgba(50, 50, 50, 0.2);
+            margin-top: 5px;
+        }
+
+        input:hover {
+            box-shadow: 1px 1px 10px 1px rgba(50, 50, 50, 1);
+        }
+
+        .error {
+            height: 20px;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .btn {
+            margin-top: 10px;
+            padding: 15px 80px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: #3c3c3c;
+            cursor: pointer;
+        }
+
+        .tip {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .tip div {
+            margin: 10px;
+        }
+
+        .must {
+            display: flex;
+            height: 30px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .must input {
+            width: 15px;
+        }
+
+        .code {
+            width: 468px;
+            display: flex;
+        }
+
+        .inputCode {
+            width: 70% !important;
+            border-top-right-radius: initial !important;
+            border-bottom-right-radius: initial !important;
+        }
+
+        .sendCode {
+            flex: 1;
+            height: 50px;
+            margin-top: 5px;
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+            background: darkblue;
+            color: white;
+            font-size: 18px;
+            padding-top: 10px;
+            cursor: pointer;
+        }
+        .loginAdmin {
+            margin-top: 10px;
+            color: blue;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .loginAdmin:hover {
+            text-decoration-line: underline;
+        }
+    </style>
+</head>
+<body>
+<div id="loginMG" class="bg">
+    <div class="drag">
+        <router-view></router-view>
+    </div>
+</div>
+</body>
+<script>
+    //用户登陆组件
+    const userLogin = {
+        data() {
+            return {
+                username_number: '',
+                password: '',
+                nError: '',
+                pError: ''
+            };
+        },
+        template: '<div class="userLogin">' +
+            '<div class="small-logo">\n' +
+            '<img src="img/LoginLogo.png" id="logo">\n' +
+            '</div>' +
+            '<form class="userForm">' +
+            '<input type="text" v-model="username_number" placeholder="请输入用户名/手机号" autocomplete="off"/>' +
+            '<div class="error">{{nError}}</div>' +
+            '<input type="password" v-model="password" placeholder="请输入您的密码" autocomplete="off"/>' +
+            '<div class="error">{{pError}}</div>' +
+            '<div class="btn" @click="login">登 陆</div>' +
+            '<a class="loginAdmin" @click="loginAdmin">管理员登陆</a>' +
+            '</form>' +
+            '<div class="tip">' +
+            '<div><router-link to="/userRegister">注册 </router-link>或<a href="index.html">返回首页</a></div>' +
+            '<div><router-link to="/userForget">忘记密码？ </router-link></div>' +
+            '</div>' +
+            '</div>',
+        methods: {
+            //用户名验证
+            checkName() {
+                var uPattern = /^[a-zA-Z0-9_-|\u4E00-\u9FA5]{2,11}$/;
+                if (uPattern.test(this.username)) {
+                    this.nError = '';
+                } else {
+                    this.nError = '用户名：2-8位中文、字母、下划线组合';
+                }
+            },
+            //密码验证
+            checkPwd() {
+                var pPattern = /^[a-zA-Z0-9//W]{8,16}$/;
+                if (pPattern.test(this.password)) {
+                    this.pError = '';
+                } else {
+                    this.pError = '密码：8-16位数字、字母、字符组合';
+                }
+            },
+            //用户登陆
+            login() {
+                if (this.username_number === '' || this.password === '') {
+                    alert("用户名或密码不能为空")
+                } else if (this.nError === '' && this.pError === '') {
+                    axios
+                        .get('UserLogin.php', {
+                            params: {username_or_number: this.username_number, password: this.password}
+                        })
+                        .then(function (response) {
+                            if (response.data == "error") {
+                                alert("登陆失败，请检查用户名或密码");
+                            } else {
+                                $.cookie("userid", response.data);
+                                window.location.href = 'index.html';
+                            }
+                        })
+                        .catch(function (error) {
+                            console.log(error)
+                        })
+                } else {
+                    alert("登陆失败，请检查用户名或密码");
+                }
+            },
+            loginAdmin() {
+                if (this.username_number === '' || this.password === '') {
+                    alert("用户名或密码不能为空")
+                } else if (this.nError === '' && this.pError === '') {
+                    axios
+                        .get('AdminLogin.php', {
+                            params: {username_or_number: this.username_number, password: this.password}
+                        })
+                        .then(function (response) {
+                            if (response.data == "error") {
+                                alert("登陆失败，请检查用户名或密码");
+                            } else {
+                                $.cookie("admin","admin");
+                                window.location.href = 'AdminMG.html';
+                            }
+                        })
+                        .catch(function (error) {
+                            console.log(error)
+                        })
+                } else {
+                    alert("登陆失败，请检查用户名或密码");
+                }
+            }
+        },
+        watch: {
+            username() {
+                this.checkName();
+            },
+            password() {
+                this.checkPwd();
+            }
+        }
+    };
+
+
+    //用户注册组件
+    const userRegister = {
+        data() {
+            return {
+                username: '', //用户名
+                nError: '',
+                password: '', //密码
+                pError: '',
+                againpwd: '', //确认密码
+                apError: '',
+                userNumber: '',  //手机号
+                unError: '',
+                randCode: '',  //随机生成验证码
+                inputCode: '', //用户输入验证码
+                sendText: '发送验证码',
+                isSend: false,
+                agree: true
+            };
+        },
+        template: '<div class="userRegister">' +
+            '<div class="small-logo">\n' +
+            '<img src="img/RegisterLogo.png" id="logo">\n' +
+            '</div>' +
+            '<form class="userForm">' +
+            '<input type="text" v-model="username" placeholder="用户名：2-11位中文、字母、下划线组合" autocomplete="off"/>' +
+            '<div class="error">{{nError}}</div>' +
+            '<input type="password" v-model="password" placeholder="密码：8-16位数字、字母、字符组合" autocomplete="off"/>' +
+            '<div class="error">{{pError}}</div>' +
+            '<input type="password" v-model="againpwd" placeholder="再次输入密码" autocomplete="off"/>' +
+            '<div class="error">{{apError}}</div>' +
+            '<input type="text" v-model="userNumber" placeholder="请输入手机号" autocomplete="off"/>' +
+            '<div class="error">{{unError}}</div>' +
+            '<div class="code">' +
+            '<input placeholder="验证码" class="inputCode" v-model="inputCode">' +
+            '<div class="sendCode" @click="sendCode">{{sendText}}</div></div>' +
+            '<div class="btn" @click="Register">注 册</div>' +
+            '<div class="must"><input type="checkbox" v-model="agree">我已阅读并同意<a href="#">相关服务条款</a>和<a href="#">隐私政策</a></div>' +
+            '</form>' +
+            '<div class="tip">' +
+            '<div><router-link to="/userLogin">登陆 </router-link>或<a href="index.html">返回首页</a></div>' +
+            '</div>' +
+            '</div>',
+        methods: {
+            //用户名验证
+            checkName() {
+                var uPattern = /^[a-zA-Z0-9_-|\u4E00-\u9FA5]{2,11}$/;
+                if (this.username == '') {
+                    this.nError = '用户名不能为空';
+                } else if (uPattern.test(this.username)) {
+                    axios
+                        .get('CheckUsername.php', {params: {username: this.username}})
+                        .then(response => (this.nError = response.data))
+                        .catch(function (error) {
+                            console.log(error);
+                        })
+                } else {
+                    this.nError = '用户名：2-11位中文、字母、下划线组合';
+                }
+            },
+            //密码验证
+            checkPwd() {
+                var pPattern = /^[a-zA-Z0-9//W]{8,16}$/;
+                if (this.password == '') {
+                    this.pError = '密码不能为空';
+                } else if (pPattern.test(this.password)) {
+                    this.pError = '';
+                } else {
+                    this.pError = '密码：8-16位数字、字母、字符组合';
+                }
+            },
+            //确认密码验证
+            checkPwdagain() {
+                if (this.password == this.againpwd) {
+                    this.apError = '';
+                } else {
+                    this.apError = '两次密码输入不一致';
+                }
+            },
+            //手机号验证
+            checkNumber() {
+                var unPattern = /^((13[0-9])|(14[5|7])|(15([0-3]|[5-9]))|(18[0,5-9]))\d{8}$/;
+                if (this.userNumber == '') {
+                    this.unError = '手机号不能为空';
+                } else if (unPattern.test(this.userNumber)) {
+                    axios
+                        .get('CheckNumber.php', {params: {number: this.userNumber}})
+                        .then(response => (this.unError = response.data))
+                        .catch(function (error) {
+                            console.log(error);
+                        })
+                } else {
+                    this.unError = '请输入正确的手机号';
+                }
+            },
+            //点击注册
+            Register() {
+                this.checkName();
+                this.checkPwd();
+                this.checkNumber();
+                this.checkPwdagain();
+                if (this.nError == "" && this.pError == "" && this.apError == "" && this.unError == "") {
+                    if (this.inputCode == "") {
+                        alert("验证码不能为空")
+                    } else if (this.inputCode === this.randCode) {
+                        if (this.agree) {
+                            axios
+                                .get('UserRegister.php', {
+                                    params: {
+                                        username: this.username,
+                                        password: this.password,
+                                        number: this.userNumber
+                                    }
+                                })
+                                .then(function (response) {
+                                    if (response.data == "注册成功") {
+                                        this.$router.push("/userLogin");
+                                    } else {
+                                        alert(response.data);
+                                    }
+                                    this.initialize();
+                                })
+                                .catch(function (error) {
+                                    console.log(error)
+                                })
+                        } else {
+                            alert("请阅读并同意相关服务条款和隐私政策");
+                        }
+                    } else {
+                        alert("验证码错误！");
+                    }
+                }
+            },
+            //发送验证码
+            sendCode() {
+                this.randCode = '';
+                if (this.userNumber == '') {
+                    alert("请输入手机号");
+                } else if (this.unError == '') {
+                    if (this.isSend) {
+                        alert("验证码已发送,请耐心等待");
+                    } else {
+                        this.sendText = '验证码已发送';
+                        this.isSend = true;
+                        for (let i = 0; i < 6; i++) {
+                            this.randCode += parseInt(Math.random() * 10);
+                        }
+                        //发送验证码
+                        axios
+                            .get('SendCode.php', {params: {rand: this.randCode, number: this.userNumber}})
+                            .then(response => (console.log(response.data)))
+                            .catch(function (error) {
+                                console.log(error)
+                            })
+                    }
+
+                } else {
+                    alert(this.unError);
+                }
+
+            },
+            //清空
+            initialize() {
+                this.username = '';
+                this.password = '';
+                this.againpwd = '';
+                this.userNumber = '';
+                this.inputCode = '';
+                this.randCode = '';
+                this.isSend = false;
+            }
+        },
+        watch: {
+            username() {
+                this.checkName();
+            },
+            password() {
+                this.checkPwd();
+            },
+            againpwd() {
+                this.checkPwdagain();
+            },
+            userNumber() {
+                this.checkNumber();
+            }
+        }
+    };
+    //忘记密码
+    const userForget = {
+        data() {
+            return {
+                userNumber: '',
+                unError: '',
+                inputCode: '',
+                randCode: '',
+                sendText: '发送验证码',
+                password: '',
+                pError: '',
+                againpwd: '',
+                apError: ''
+            }
+        },
+        template: '<div class="userForget">' +
+            '<form class="userForm" style="margin-top: 20px">' +
+            '<input type="text" v-model="userNumber" placeholder="请输入手机号" autocomplete="off"/>' +
+            '<div class="error">{{unError}}</div>' +
+            '<input type="password" v-model="password" placeholder="密码：8-16位数字、字母、字符组合" autocomplete="off"/>' +
+            '<div class="error">{{pError}}</div>' +
+            '<input type="password" v-model="againpwd" placeholder="再次输入密码" autocomplete="off"/>' +
+            '<div class="error">{{apError}}</div>' +
+            '<div class="code">' +
+            '<input placeholder="验证码" class="inputCode" v-model="inputCode">' +
+            '<div class="sendCode" @click="sendCode">{{sendText}}</div></div>' +
+            '<div class="btn" @click="confirm">确 认</div>' +
+            '</form>' +
+            '<div class="tip">' +
+            '<div><router-link to="/userLogin">登陆 </router-link>或<a href="index.html">返回首页</a></div>' +
+            '</div>' +
+            '</div>',
+        methods: {
+            //密码验证
+            checkPwd() {
+                var pPattern = /^[a-zA-Z0-9//W]{8,16}$/;
+                if (this.password == '') {
+                    this.pError = '密码不能为空';
+                } else if (pPattern.test(this.password)) {
+                    this.pError = '';
+                } else {
+                    this.pError = '密码：8-16位数字、字母、字符组合';
+                }
+            },
+            //确认密码验证
+            checkPwdagain() {
+                if (this.password == this.againpwd) {
+                    this.apError = '';
+                } else {
+                    this.apError = '两次密码输入不一致';
+                }
+            },
+            //手机号验证
+            checkNumber() {
+                var unPattern = /^((13[0-9])|(14[5|7])|(15([0-3]|[5-9]))|(18[0,5-9]))\d{8}$/;
+                if (this.userNumber == '') {
+                    this.unError = '手机号不能为空';
+                } else if (unPattern.test(this.userNumber)) {
+                    axios
+                        .get('CheckForget.php', {params: {number: this.userNumber}})
+                        .then(response => (this.unError = response.data))
+                        .catch(function (error) {
+                            console.log(error);
+                        })
+                } else {
+                    this.unError = '请输入正确的手机号';
+                }
+            },
+            //发送验证码
+            sendCode() {
+                this.checkNumber();
+                this.checkPwd();
+                this.checkPwdagain();
+                this.randCode = '';
+                if (this.pError == "" && this.apError == "" && this.unError == "") {
+                    if (this.isSend) {
+                        alert("验证码已发送,请耐心等待");
+                    } else {
+                        this.sendText = '验证码已发送';
+                        this.isSend = true;
+                        for (let i = 0; i < 6; i++) {
+                            this.randCode += parseInt(Math.random() * 10);
+                        }
+                        //发送验证码
+                        axios
+                            .get('SendCode.php', {params: {rand: this.randCode, number: this.userNumber}})
+                            .then(response => (console.log(response.data)))
+                            .catch(function (error) {
+                                console.log(error)
+                            })
+                    }
+                } else {
+                    alert("请输入有效信息");
+                }
+            },
+            confirm() {
+                console.log(this.inputCode);
+                console.log(this.randCode);
+                this.checkPwd();
+                this.checkPwdagain();
+                this.checkNumber();
+                if (this.pError == "" && this.apError == "" && this.unError == "") {
+                    if (this.inputCode == "") {
+                        alert("验证码不能为空")
+                    } else if (this.inputCode === this.randCode) {
+                        axios
+                            .get('ChangePwd.php', {params: {number: this.userNumber, password: this.password}})
+                            .then(this.$router.push('/userLogin'))
+                            .catch(function (error) {
+                                console.log(error)
+                            })
+                    } else {
+                        alert("验证码错误！");
+                    }
+                }
+                else {
+                    alert("请输入有效信息");
+                }
+            }
+        },
+        watch: {
+            password() {
+                this.checkPwd();
+            },
+            againpwd() {
+                this.checkPwdagain();
+            },
+            userNumber() {
+                this.checkNumber();
+            }
+        }
+    };
+
+
+    //路由
+    const routes = [
+        {path: '/', redirect: '/userLogin'},
+        {path: '/userLogin', component: userLogin},
+        {path: '/userRegister', component: userRegister},
+        {path: '/userForget', component: userForget}
+    ];
+    const router = new VueRouter({
+        routes // （缩写）相当于 routes: routes
+    });
+    new Vue({
+        el: '#loginMG',
+        router,
+        data() {
+            return {}
+        }
+    })
+</script>
+</html>

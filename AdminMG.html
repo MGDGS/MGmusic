@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script src="https://cdn.staticfile.org/vue/2.2.2/vue.min.js"></script>
+    <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link rel="shortcut icon" href="#">
+    <link rel="stylesheet" href="css/AdminMG.css">
+</head>
+<body>
+<header>
+    <div class="title">MGmusic后台管理系统</div>
+</header>
+<div id="app">
+    <div class="logout" @click="logout">退出登陆</div>
+    <aside>
+        <ul>
+            <li @click="gotoIndex">
+                <router-link to="/adminIndex">系统首页</router-link>
+            </li>
+            <li @click="gotoSong">
+                <router-link to="/adminSong">歌曲管理</router-link>
+            </li>
+            <li @click="gotoSongmenu">
+                <router-link to="/adminSongmenu">歌单管理</router-link>
+            </li>
+            <li @click="gotoUser">
+                <router-link to="/adminUser">用户管理</router-link>
+            </li>
+        </ul>
+    </aside>
+    <div id="content">
+        <router-view></router-view>
+    </div>
+</div>
+</body>
+<script>
+    //系统首页组件
+    const adminIndex = {
+        data() {
+            return {
+                overview: '',
+                adminMessage: '',  //管理员信息
+                systemMessage: '', //系统消息
+                todoContent: '', //待办事项
+                todoList: ''  //待办事项列表
+            }
+        },
+        template: '<div class="index">' +
+            '<div class="information">' +
+            '<div class="adminContent" v-for="site in adminMessage">' +
+            '<div class="adminmsg">' +
+            '<div class="adminAvatar"><img :src="site.avatar"></div>' +
+            '<div class="admintxt"><div class="l-font">{{site.name}}</div><div class="s-font">超级管理员</div></div>' +
+            '</div>' +
+            '<div class="lasttime">上次登陆：{{site.lasttime}}</div>' +
+            '</div>' +
+            '<div class="system-msg" v-for="site in overview">' +
+            '<router-link to="/adminVisit" class="user-n countdiv">' +
+            '<div class="count">{{site.visitcount}}</div><div class="countname">用户访问</div>' +
+            '</router-link>' +
+            '<router-link to="/adminSong" class="songlist-n countdiv">' +
+            '<div class="count">{{site.songcount}}</div><div class="countname">歌曲</div>' +
+            '</router-link>' +
+            '<div class="moment-n countdiv">' +
+            '<div class="count">{{site.momentscount}}</div><div class="countname">动态</div>' +
+            '</div>' +
+            '<router-link to="/adminUser" class="user-n countdiv">' +
+            '<div class="count">{{site.usercount}}</div><div class="countname">用户</div>' +
+            '</router-link>' +
+            '<router-link to="/adminSongmenu" class="songlist-n countdiv">' +
+            '<div class="count">{{site.songmenucount}}</div><div class="countname">歌单</div>' +
+            '</router-link>' +
+            '<div class="moment-n countdiv">' +
+            '<div class="count">{{site.commentcount}}</div><div class="countname">评论</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="message">' +
+            '<div class="messageList">' +
+            '<div class="list-title">系统消息<a class="btn-b">历史记录</a></div>' +
+            '<div class="todo-list">' +
+            '<table>' +
+            '<tr v-for="site in systemMessage">' +
+            '<td class="th-c">{{site.message_time}}</td>' +
+            '<td class="todo-item"><span class="red">{{site.message_type}}</span>&nbsp&nbsp&nbsp&nbsp<router-link to="">{{site.message_content}}</router-link></td>' +
+            '</tr>' +
+            '</table>' +
+            '</div>' +
+            '</div>' +
+            '<div class="messageList">' +
+            '<div class="list-title">待办事项' +
+            '<a @click="addTodo" class="btn-b">添加</a>' +
+            '<input class="input-todo" type="text" placeholder="添加待办事项" v-model="todoContent"></div>' +
+            '<div class="todo-list">' +
+            '<table>' +
+            '<tr v-for="site in todoList">' +
+            '<td class="th-a"><input type="checkbox"></td>' +
+            '<td class="todo-item">{{site.todo_content}}</td>' +
+            '<td class="th-a btn-a">编辑</td>' +
+            '<td class="th-a btn-a" @click="delTodo(site.todo_id)">删除</td>' +
+            '</tr>' +
+            '</table>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>',
+        methods: {
+            loadAdmin() {
+                axios
+                    .get('AdminMessage.php')
+                    .then(response => (this.adminMessage=response.data))
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            loadOverview() {
+                axios
+                    .get('LoadSystemOverview.php')
+                    .then(response => (this.overview=response.data))
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            loadSystemmessage(range) {
+                axios
+                    .get('LoadSystemMessage.php',{params:{range:range}})
+                    .then(response => (this.systemMessage=response.data))
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            loadSystemtodo() {
+                axios
+                    .get('LoadSystemTodo.php')
+                    .then(response => (this.todoList=response.data))
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            addTodo() {
+                if(this.todoContent=='') {
+                    alert("您还未输入任何内容");
+                }
+                else {
+                    axios
+                        .get('AdminAddTodo.php',{params:{content:this.todoContent}})
+                        .then(response => (console.log(response.data),this.loadSystemtodo()))
+                        .catch(function (error) {
+                            console.log(error);
+                        })
+                }
+            },
+            delTodo(id) {
+                axios
+                    .get('AdminDeleteTodo.php',{params:{todo:id}})
+                    .then(this.loadSystemtodo())
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            }
+        },
+        mounted() {
+            this.loadAdmin();
+            this.loadOverview();
+            this.loadSystemmessage('new');
+            this.loadSystemtodo();
+        }
+    };
+    //歌曲管理组件
+    const adminSong = {
+        data: function () {
+            return {
+                songList: '',
+                searchTxt: '',
+                checked: false, //是否全选
+                checkModel:[], //双向数据绑定的数组，这里用的id
+                uploadResult: ''
+            }
+        },
+        template: '<div class="admin-song admin-details">' +
+            '<span class="content-title">歌曲列表  ></span>' +
+            '<div class="row-one">' +
+            '<div class="batch-del" @click="delAllsong">批量删除</div>' +
+            '<input class="input-name" placeholder="歌曲/歌手" v-model="searchTxt">' +
+            '<div class="search-user" @click="searchSong">搜索</div>' +
+            '<div class="search-user upload">上传歌曲' +
+            '<input type="file" @change="uploadSong($event)" name="uploadsong">' +
+            '</div>' +
+            '</div>' +
+            '<div class="row-two">' +
+            '<div class="row-two-table">' +
+            '<table><tr>' +
+            '<th class="th-a"><input name="user" type="checkbox" @click="checkAll" v-model="checked"></th>' +
+            '<th class="th-a">ID</th>' +
+            '<th class="song">歌曲</th>' +
+            '<th class="th-a">时长</th>' +
+            '<th class="singer">歌手</th>' +
+            '<th class="th-b">上传日期</th>' +
+            '<th class="th-b">操作</th>' +
+            '</tr> ' +
+            '<tr v-for="site in songList">' +
+            '<td><input name="user" type="checkbox" :value="site.song_id" v-model="checkModel"></td>' +
+            '<td>{{site["song_id"]}}</td>' +
+            '<td>{{site["song_name"]}}</td>' +
+            '<td>{{site["song_duration"]}}</td>' +
+            '<td>{{site["song_singer"]}}</td>' +
+            '<td>{{site["song_upload"]}}</td>' +
+            '<td class="operate"><div class="see-user">查看</div><div class="del-user" @click="delSong(site.song_id)">删除</div></td>' +
+            '</tr>' +
+            '</table>' +
+            '</div>' +
+            '</div>' +
+            '</div>',
+        mounted() {
+            this.loadAllsong();
+        },
+        watch:{
+            checkModel(){
+                if(this.checkModel.length==this.songList.length){
+                    this.checked=true;
+                }else{
+                    this.checked=false;
+                }
+            },
+            uploadResult() {
+                alert(this.uploadResult);
+                this.loadAllsong();
+            }
+        },
+        methods: {
+            uploadSong(event) {
+                var file = event.target.files[0];//获取文件
+                var formData = new FormData();//new一个formData事件
+                formData.set("song", file); //将file属性添加到formData里
+                axios({
+                    method: "POST",
+                    url: "AdminUploadSong.php",
+                    header: {'Content-Type': "multipart/form-data"},
+                    data: formData
+                })
+                    .then(response => this.uploadResult=response.data)
+                    .catch(function (error) {
+                    console.log(error);
+                });
+            },
+            loadAllsong() {
+                axios
+                    .get('LoadAllSong')
+                    .then(response => (this.songList = response.data))
+                    .catch(function (error) { // 请求失败处理
+                        console.log(error);
+                    });
+            },
+            searchSong() {
+                if (this.searchTxt=='') {
+                    this.loadAllsong();
+                }
+                else {
+                    axios
+                        .get('SearchSong.php', {
+                            params: {content: this.searchTxt}
+                        })
+                        .then(response => (this.songList = response.data))
+                        .catch(function (error) {
+                            // 请求失败处理
+                            console.log(error);
+                        });
+                }
+            },
+            checkAll() {
+                if(this.checked){
+                    this.checkModel=[];
+                }else{
+                    this.songList.forEach((item)=>{
+                        if(this.checkModel.indexOf(item.song_id)==-1){
+                            this.checkModel.push(item.song_id)
+                        }
+                    })
+                }
+            },
+            delSong(song) {
+                var con = confirm("请确认删除");
+                if (con) {
+                    axios
+                        .get('AdminDeleteSong.php',{
+                            params: {
+                                song: song
+                            }
+                        })
+                        .then(response => (alert(response.data),this.loadAllsong()))
+                        .catch(function (error) {
+                            console.log(error)
+                        })
+                }
+
+            },
+            delAllsong() {
+                if (this.checkModel.length>0) {
+                    this.delSong(this.checkModel);
+                }
+            }
+
+        }
+    };
+    //歌单管理组件
+    const adminSongmenu = {
+        data: function () {
+            return {
+                songListlist: '',
+                searchTxt: '',
+                checked: false, //是否全选
+                checkModel:[] //双向数据绑定的数组，这里用的id
+            }
+        },
+        template: '<div class="admin-songlist admin-details">' +
+            '<span class="content-title">歌单列表  ></span>' +
+            '<div class="row-one">' +
+            '<div class="batch-del" @click="delAllsonglist">批量删除</div>' +
+            '<input class="input-name" placeholder="歌单名/用户" v-model="searchTxt">' +
+            '<div class="search-user" @click="searchSonglist">搜索</div>' +
+            '<div class="search-user">新建歌单</div>' +
+            '</div>' +
+            '<div class="row-two">' +
+            '<div class="row-two-table">' +
+            '<table><tr>' +
+            '<th class="th-a"><input type="checkbox"  @click="checkAll"/></th>' +
+            '<th class="th-a">ID</th>' +
+            '<th>歌单名</th>' +
+            '<th class="th-a">封面</th>' +
+            '<th>创建者</th>' +
+            '<th class="th-b">创建时间</th>' +
+            '<th class="th-a">语种</th> ' +
+            '<th class="th-a">风格</th>' +
+            '<th class="th-b">操作</th>' +
+            '</tr>' +
+            '<tr v-for="site in songListlist">' +
+            '<td class="tb-choice"><input type="checkbox" :value="site.songmenu_id" v-model="checkModel" /></td>' +
+            '<td>{{site["songmenu_id"]}}</td>' +
+            '<td>{{site["songmenu_name"]}}</td>' +
+            '<td class="tb-avatar tb-cover"><div><img :src="site.songmenu_cover"></div></td>' +
+            '<td>{{site["user_name"]}}</td>' +
+            '<td>{{site["createdate"]}}</td>' +
+            '<td>{{site["tag_language"]}}</td>' +
+            '<td>{{site["tag_style"]}}</td>' +
+            '<td class="operate"><div class="see-user">查看</div><div class="del-user" @click="delSonglist(site.songmenu_id)">删除</div></td>' +
+            '</tr>' +
+            '</table>' +
+            '</div>' +
+            '</div>' +
+            '</div>',
+        mounted() {
+            this.loadAllsonglist();
+        },
+        methods: {
+            loadAllsonglist() {
+                axios
+                    .get('LoadAllSongList.php')
+                    .then(response => (this.songListlist = response.data))
+                    .catch(function (error) { // 请求失败处理
+                        console.log(error);
+                    });
+            },
+            searchSonglist() {
+                if (this.searchTxt=='') {
+                    this.loadAllsonglist();
+                }
+                else {
+                    axios
+                        .get('SearchSongList.php', {
+                            params: {content: this.searchTxt}
+                        })
+                        .then(response => (this.songListlist = response.data))
+                        .catch(function (error) {
+                            // 请求失败处理
+                            console.log(error);
+                        });
+                }
+            },
+            checkAll() {
+                if(this.checked){
+                    this.checkModel=[];
+                    this.checked=false;
+                }else{
+                    this.songListlist.forEach((item)=>{
+                        if(this.checkModel.indexOf(item.songmenu_id)==-1){
+                            this.checkModel.push(item.songmenu_id)
+                        }
+                    })
+                    this.checked=true;
+                }
+            },
+            delSonglist(songlist) {
+                var con = confirm("请确认删除");
+                if (con) {
+                    axios
+                        .get('AdminDeleteSongList.php',{
+                            params: {
+                                songlist: songlist
+                            }
+                        })
+                        .then(response => (alert(response.data),this.loadAllsonglist()))
+                        .catch(function (error) {
+                            console.log(error)
+                        })
+                }
+
+            },
+            delAllsonglist() {
+                if (this.checkModel.length>0) {
+                    this.delSonglist(this.checkModel);
+                }
+            }
+
+        }
+    };
+    //用户管理组件
+    const adminUser = {
+        data: function () {
+            return {
+                userList: '',
+                searchTxt: '',
+                checked: false, //是否全选
+                checkModel:[] //双向数据绑定的数组，这里用的id
+            }
+        },
+        template: '<div class="admin-user admin-details">' +
+            '<span class="content-title">用户列表  ></span>' +
+            '<div class="row-one">' +
+            '<div class="batch-del" @click="delAlluser">批量删除</div>' +
+            '<input class="input-name" placeholder="用户名" v-model="searchTxt"><' +
+            'div class="search-user" @click="searchUser">搜索</div>' +
+            '</div>' +
+            '<div class="row-two">' +
+            '<div class="row-two-table">' +
+            '<table><tr>' +
+            '<th class="th-a"><input type="checkbox" @click="checkAll" v-model="checked"/></th>' +
+            '<th class="th-a">ID</th>' +
+            '<th class="th-b">用户名</th>' +
+            '<th class="th-a">头像</th>' +
+            '<th class="th-a">性别</th><' +
+            'th class="th-b">出生日期</th>' +
+            '<th>个人描述</th> ' +
+            '<th class="th-b">注册时间</th>' +
+            '<th class="th-b">操作</th>' +
+            '</tr>' +
+            '<tr v-for="site in userList">' +
+            '<td class="tb-choice"><input name="user" type="checkbox" :value="site.user_id" v-model="checkModel" /></td>' +
+            '<td>{{site["user_id"]}}</td>' +
+            '<td>{{site["user_name"]}}</td>' +
+            '<td class="tb-avatar"><div><img :src="site[\'user_avatar\']"></div></td>' +
+            '<td class="tb-gender">{{site["user_gender"]}}</td>' +
+            '<td>{{site["user_birthday"]}}</td>' +
+            '<td>{{site["user_lable"]}}</td>' +
+            '<td>{{site["user_register"]}}</td>' +
+            '<td class="operate"><div class="see-user" @click="gotoadminUserdetails(site.user_id)">查看</div><div class="del-user" @click="delUser(site.user_id)">删除</div></td>' +
+            '</tr>' +
+            '</table>' +
+            '</div>' +
+            '</div>' +
+            '</div>',
+        mounted() {
+            this.loadALluser();
+        },
+        watch:{
+            checkModel(){
+                if(this.checkModel.length==this.userList.length){
+                    this.checked=true;
+                }else{
+                    this.checked=false;
+                }
+            }
+        },
+        methods: {
+            loadALluser() {
+                axios
+                    .get('LoadAllUser.php')
+                    .then(response => (this.userList = response.data))
+                    .catch(function (error) {
+                        console.log(error);
+                    })
+            },
+            searchUser() {
+                if (this.searchTxt=='') {
+                    this.loadALluser();
+                }
+                else {
+                    axios
+                        .get('SearchUser.php', {
+                            params: {username : this.searchTxt}
+                        })
+                        .then(response => (this.userList = response.data))
+                        .catch(function (error) {
+                            // 请求失败处理
+                            console.log(error);
+                        });
+                }
+            },
+            checkAll() {
+                if(this.checked){
+                    this.checkModel=[];
+                }else{
+                    this.userList.forEach((item)=>{
+                        if(this.checkModel.indexOf(item.user_id)==-1){
+                            this.checkModel.push(item.user_id)
+                        }
+                    })
+                }
+            },
+            delUser(user) {
+                var con = confirm("请确认删除");
+                if (con) {
+                    axios
+                        .get('AdminDeleteUser.php',{
+                            params: {
+                                user: user
+                            }
+                        })
+                        .then(response => (alert(response.data),this.loadALluser()))
+                        .catch(function (error) {
+                            console.log(error)
+                        })
+                }
+
+            },
+            delAlluser() {
+                if (this.checkModel.length>0) {
+                    this.delUser(this.checkModel);
+                }
+            },
+            gotoadminUserdetails(id) {
+                this.$router.push({path:'/adminUserdetails',query:{userid:id}});
+            }
+        }
+    };
+    //用户访问组件
+    const adminVisit = {
+        data() {
+            return {
+                visitlist: '',
+                searchTxt: ''
+            }
+        },
+        template: '<div class="admin-visit admin-details">' +
+            '<span class="content-title">用户访问列表  ></span>' +
+            '<div class="row-one">' +
+            '<input class="input-name" placeholder="IP/所属地区/访问时间" v-model="searchTxt">' +
+            '</div>' +
+            '<div class="row-two">' +
+            '<div class="row-two-table">' +
+            '<table><tr>' +
+            '<th class="th-a">序号</th>' +
+            '<th class="th-a">IP地址</th>' +
+            '<th class="th-b">所属地区</th>' +
+            '<th class="th-a">时间</th>' +
+            '</tr>' +
+            '<tr v-for="site in visitlist">' +
+            '<td>{{site.id}}</td>' +
+            '<td>{{site.IP}}</td>' +
+            '<td>{{site.address}}</td>' +
+            '<td>{{site.time}}</td>' +
+            '</tr>' +
+            '</table>' +
+            '</div>' +
+            '</div>' +
+            '</div>',
+        methods: {
+            loadSystemvisit() {
+                axios
+                    .get('LoadSystemVisit.php')
+                    .then(response => (this.visitlist=response.data))
+                    .catch(function (error) {
+                        console.log(error)
+                    })
+            },
+            searchVisit() {
+                if (this.searchTxt=='') {
+                    this.loadSystemvisit();
+                }
+                else {
+                    axios
+                        .get('SearchVisit.php', {
+                            params: {username : this.searchTxt}
+                        })
+                        .then(response => (this.visitlist = response.data))
+                        .catch(function (error) {
+                            // 请求失败处理
+                            console.log(error);
+                        });
+                }
+            }
+        },
+        watch: {
+            searchTxt() {
+                this.searchVisit();
+            }
+        },
+        mounted() {
+            this.loadSystemvisit();
+        }
+    };
+    //用户详细信息
+    const adminUserdetails = {
+        data() {
+            return {
+                userid: this.$route.query["userid"],
+                userdetails: '',
+                usercreated: '',
+                userconcern: '',
+                usermoments: ''
+            }
+        },
+        template: '<div class="adminUserdetails admin-details">' +
+            '<span class="content-title">用户管理  >  详细信息</span>' +
+            '<div class="row-two">' +
+            '<div class="uD-information uD-content" v-model="userdetails">' +
+            '<div class="uD-avatar"><img :src="userdetails.user_avatar"></div>' +
+            '<div class="uD-details">' +
+            '<div>用户名：{{userdetails.user_name}}</div>' +
+            '<div>手机号：{{userdetails.user_number}}</div>' +
+            '<div>性别：{{userdetails.user_gender}}</div>' +
+            '<div>出生日期：{{userdetails.user_birthday}}</div>' +
+            '<div>注册时间：{{userdetails.user_register}}</div>' +
+            '<div>个人描述：{{userdetails.user_lable}}</div>' +
+            '</div>' +
+            '</div>' +
+                //用户歌单
+            '<div class="uD-create uD-content"><div class="uD-title">创建的歌单</div>' +
+            '<table>' +
+            '<th class="uD-th1">歌单ID</th>' +
+            '<th>歌单名称</th>' +
+            '<th class="uD-th1">封面</th>' +
+            '<th>歌单描述</th>' +
+            '<th class="uD-th2">创建时间</th>' +
+            '<th class="uD-th1">语种</th>' +
+            '<th class="uD-th1">风格</th>' +
+            '<th class="uD-th1">歌曲数</th>' +
+            '<tr v-for="site in usercreated">' +
+            '<td>{{site.songmenu_id}}</td>' +
+            '<td class="uD-afont">{{site.songmenu_name}}</td>' +
+            '<td><div class="uD-cover"><img :src="site.songmenu_cover"></div></td>' +
+            '<td class="uD-afont">{{site.songmenu_lable}}</td>' +
+            '<td>{{site.createdate}}</td>' +
+            '<td>{{site.tag_language}}</td>' +
+            '<td>{{site.tag_style}}</td>' +
+            '<td>10首</td>' +
+            '</tr>' +
+            '</table>' +
+            '</div>' +
+                //用户关注
+            '<div class="uD-content"><div class="uD-title">关注的人</div>' +
+            '<table><tr>' +
+            '<th class="uD-th1">ID</th>' +
+            '<th class="th-b">用户名</th>' +
+            '<th class="uD-th1">头像</th>' +
+            '<th class="uD-th1">性别</th><' +
+            'th class="uD-th2">出生日期</th>' +
+            '<th>个人描述</th> ' +
+            '<th class="uD-th2">注册时间</th>' +
+            '<th class="th-b">操作</th>' +
+            '</tr>' +
+            '<tr v-for="site in userconcern">' +
+            '<td>{{site["user_id"]}}</td>' +
+            '<td>{{site["user_name"]}}</td>' +
+            '<td class="tb-avatar"><div><img :src="site[\'user_avatar\']"></div></td>' +
+            '<td class="tb-gender">{{site["user_gender"]}}</td>' +
+            '<td>{{site["user_birthday"]}}</td>' +
+            '<td>{{site["user_lable"]}}</td>' +
+            '<td>{{site["user_register"]}}</td>' +
+            '<td class="operate"><div class="see-user" @click="gotoadminUserdetails(site.user_id)">查看</div><div class="del-user" @click="delUser(site.user_id)">删除</div></td>' +
+            '</tr>' +
+            '</table>' +
+            '</div>' +
+                //用户动态
+            '<div class="uD-moments uD-content">' +
+            '<div class="uD-create uD-content"><div class="uD-title">发布的动态</div>' +
+            '<div>' +
+            '<table>' +
+            '<th class="uD-th1">动态ID</th>' +
+            '<th>动态内容</th>' +
+            '<th>分享歌曲</th>' +
+            '<th>分享歌单</th>' +
+            '<th class="uD-th1">发布时间</th>' +
+            '<th class="th-b">操作</th>' +
+            '<tr v-for="site in usermoments">' +
+            '<td>{{site.moment_id}}</td>' +
+            '<td>{{site.moment_content}}</td>' +
+            '<td>{{site.song_name}}</td>' +
+            '<td>{{site.songmenu_name}}</td>' +
+            '<td>{{site.moment_time}}</td>' +
+            '<td class="operate"><div class="del-user">删除</div></td>' +
+            '</tr>' +
+            '</table>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>',
+        methods: {
+            loadUserdetails() {
+                axios
+                    .get('LoadUserInformation.php',{params:{userid:this.userid}})
+                    .then(response => (this.userdetails=response.data))
+                    .catch(function (error) {
+                        console.log(error)
+                    })
+            },
+            loadUsercreated() {
+                axios
+                    .get('LoadUserCreated.php',{params:{userid:this.userid}})
+                    .then(response => (this.usercreated = response.data))
+                    .catch(function (error) {
+                        console.log(error)
+                    });
+            },
+            loadUserconcern() {
+                axios
+                    .get('LoadUserConcern.php',{params:{userid:this.userid}})
+                    .then(response => (this.userconcern = response.data,console.log(this.userconcern)))
+                    .catch(function (error) {
+                        console.log(error)
+                    });
+            },
+            loadUsermoments() {
+                axios
+                    .get('LoadUserMoments.php',{params:{userid:this.userid}})
+                    .then(response => (this.usermoments = response.data,console.log(this.usermoments)))
+                    .catch(function (error) {
+                        console.log(error)
+                    });
+            },
+            gotoadminUserdetails(id) {
+                this.userid = id;
+            }
+        },
+        watch: {
+          userid() {
+              this.loadUserdetails();
+              this.loadUsercreated();
+              this.loadUserconcern();
+          }
+        },
+        mounted() {
+            this.loadUserdetails();
+            this.loadUsercreated();
+            this.loadUserconcern();
+            this.loadUsermoments();
+        }
+    }
+
+    //定义路由
+    const routes = [
+        {path: '/', redirect: '/adminIndex'},
+        {path: '/adminIndex', component: adminIndex},
+        {path: '/adminSong', component: adminSong},
+        {path: '/adminSongmenu', component: adminSongmenu},
+        {path: '/adminUser', component: adminUser},
+        {path: '/adminVisit', component: adminVisit},
+        {path: '/adminUserdetails', component: adminUserdetails},
+    ];
+    // 3. 创建 router 实例，然后传 `routes` 配置
+    const router = new VueRouter({
+        routes // （缩写）相当于 routes: routes
+    });
+    // 创建根实例
+    const app = new Vue({
+        el: '#app',
+        router,
+        data: {
+            info: null
+        },
+        methods: {
+            logout() {
+                $.removeCookie('admin');
+                window.location.href="LoginMG.html";
+            },
+            gotoIndex() {
+                this.$router.push('/adminIndex')
+            },
+            gotoSong() {
+                this.$router.push('/adminSong')
+
+            },
+            gotoSongmenu() {
+                this.$router.push('/adminSongmenu')
+            },
+            gotoUser() {
+                this.$router.push('/adminUser')
+            }
+        },
+        beforeCreate() {
+            if ($.cookie("admin")==undefined) {
+                window.location.href="LoginMG.html";
+            }
+        }
+    })
+
+
+</script>
+</html>

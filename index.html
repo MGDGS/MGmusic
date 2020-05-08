@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>首页</title>
+    <link rel="shortcut icon" href="#">
+    <link rel="stylesheet" href="css/index.css">
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script src="https://cdn.staticfile.org/vue/2.2.2/vue.min.js"></script>
+    <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="js/ElementIndex.js"></script>
+    <script src="http://pv.sohu.com/cityjson?ie=utf-8"></script>
+    <style>
+        html {
+            width: 100%;
+            height: 100%;
+        }
+        body {
+            width: 100%;
+            min-height: 100%;
+            height: 100%;
+            display: flex;
+            margin: 0;
+            flex-direction: column;
+            background: #f0f0f0;
+            justify-content: space-between;
+        }
+
+        header {
+            height: 80px;
+            background-color: #242f42;
+            display: flex;
+        }
+        #app {
+            flex: 1 ;
+        }
+        footer {
+            margin-top: 20px;
+            padding: 0;
+            height: 80px;
+            min-height: 80px;
+            background-color: #242f42;
+            text-align: center;
+            color: white;
+        }
+
+        .title {
+            width: 30%;
+            color: white;
+            font-size: 50px;
+            font-weight: bold;
+            text-align: center;
+            padding-top: 10px;
+        }
+
+        .nav {
+            width: 30%;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav a {
+            color: #dadada;
+            font-size: 18px;
+            cursor: pointer;
+            margin-left: 30px;
+        }
+
+        .nav a:hover {
+            color: white;
+        }
+        .serchAll {
+            width: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #c6c6c6;
+        }
+        .serchAll input {
+            width: 200px;
+            padding: 5px 10px;
+            border-top-left-radius: 5px;
+            border-bottom-left-radius: 5px;
+            border: 1px solid #c6c6c6;
+            background: none;
+            color: #c6c6c6;
+        }
+        .searchbtn {
+            padding: 4px 10px;
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+            border: 1px solid #c6c6c6;
+            color: #c6c6c6;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .searchbtn:hover {
+            color: white;
+            background: rgba(255,255,255,.2);
+        }
+        .status {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .status a{
+            cursor: pointer;
+            color: #dadada;
+        }
+        .status a:hover {
+            color: white;
+        }
+        .menu {
+            position: absolute;
+            width: 10%;
+            top: 50px;
+            z-index: 999;
+            display: none;
+        }
+        .menu div {
+            margin-top: 10px;
+        }
+        .menu a {
+            display: block;
+            text-align: center;
+            padding: 10px;
+            background-color: #f9f9f9;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            color: black;
+            border: none;
+        }
+        .menu a:hover{
+            color: black;
+            background-color: #f1f1f1
+        }
+        #element {
+            background: #f0f0f0;
+            margin-bottom: 20px;
+        }
+
+    </style>
+</head>
+<body>
+<div id="app">
+    <header>
+        <div class="title">MGmusic</div>
+        <div class="nav">
+            <router-link to="/index">首页</router-link>
+            <router-link to="/SongPage">曲库</router-link>
+            <router-link to="/SongList">歌单</router-link>
+            <router-link to="/MomentPage">动态</router-link>
+            <router-link to="/UserMusic">我的音乐</router-link>
+        </div>
+        <div class="serchAll"><input placeholder="歌曲/歌单/用户" v-model="searchAll"><router-link to="/searchResult" class="searchbtn">搜索</router-link></div>
+        <div class="status">
+            <a href="LoginMG.html" v-if="!status">登陆</a>
+            <a v-if="status" class="dropDown" v-model="user">{{user["user_name"]}}</a>
+            <div class="menu" v-if="status">
+                <div>
+                    <a @click="gotoUserpage">个人主页</a><a>消息</a><a @click="logout">注销</a>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div id="element">
+        <router-view @musicplay="play" @songlistplay="listplay" @musiccollect="collect" @share="share" :shareresult="shareResult" :searchcontent="searchAll" :uprand="upRand"></router-view>
+    </div>
+    <music-control  :message="playId" :listmessage="playList" @musiccollect="collect" v-show="controlShow"></music-control>
+    <div class="abc">播放控制</div>
+    <collect-song :songid="collectId"></collect-song>
+    <music-share :share="shareStatus" :sharesong="shareSong" :sharesonglist="shareSonglist" @shareresult="shareresult"></music-share>
+</div>
+<footer>
+    <div style="margin-top: 10px;font-size: 13px">©2020 陈宇新</div>
+    <div style="margin-top: 5px;font-size: 13px">本站音乐资源来源于网上，仅供试听功能，仅作网站建设学习使用，侵删</div>
+</footer>
+</body>
+<script>
+    $(document).ready(function () {
+        $(".dropDown").hover(function () {
+            $(".menu").toggle();
+        });
+        $(".menu").hover(function () {
+            $(".menu").toggle();
+        });
+        $(".abc").click(function () {
+            $(".musicControl").slideDown("slow");
+        });
+    });
+    //音乐播放控制组件
+    const musicControl = {
+        props : ['message','listmessage'], //歌曲id,歌单歌曲列表
+        data() {
+            return {
+                playId: null, //当前歌曲id
+                playContent: '',//当前歌曲播放信息
+                idList: [],//歌曲id列表
+                playList: [], //播放列表信息
+                playOrder: 0, //播放序号
+                playStatus : false, //播放状态
+                playListshow: false, //列表展示
+                Timer : "", //定时器
+                playBar : {
+                    width:"0%"   //进度条
+                },
+                songDuration: "", //持续时间
+                songCurrent: "", //进度时间
+                duration: "",//格式化播放时间
+                current: "0:00",//格式化进度时间
+                barWidth: "",//进度条总长度
+                playEnded: false,
+                playWay: "loop" //播放方式，默认循环播放
+            }
+        },
+        template: '<div class="musicControl">' +
+            '<div class="close" @click="showControl">&times;</div>' +
+            '<audio ref="audio"></audio>' +
+            '<div class="playControl">' +
+                '<div class="controlBtn prev" @click="playPrev"></div>' +
+                '<div class="controlBtn pause" v-if="playStatus" @click="playSong"></div>' +
+                '<div class="controlBtn play" v-if="!playStatus" @click="playSong"></div>' +
+                '<div class="controlBtn next" @click="playNext"></div>' +
+            '</div>' +
+            '<div class="musicContent" v-model="playContent">' +
+                '<div class="musicMsg">' +
+                    '<div class="msgShow"><span @click="gotoSongdetails(playContent.song_id)">{{playContent.song_name}}</span> - <span>{{playContent.song_singer}}</span></div>' +
+                    '<div class="durationShow"><span>{{playContent.song_duration}}</span>/<span>{{current}}</span></div>' +
+                '</div>' +
+                '<div class="musicBar" ref="bar" @click="skipBar"><div class="playBar" :style="playBar"><div class="playDot"></div></div></div>' +
+            '</div>' +
+            '<div class="doText" @click="musicCollect(playContent.song_id)">收藏</div>' +
+            '<div class="doText" @click="playListshow=!playListshow">播放列表</div>' +
+            '<div class="voiceControl"></div>' +
+            //播放列表
+            '<div class="playList" v-if="playListshow">' +
+            '<div class="listTitle">播放列表<span class="close" @click="playListshow=false">&times;</span></div>' +
+            '<table class="songTable">' +
+            '<tr>' +
+            '<th class="th-a">id</th><th>歌曲</th><th class="th-a">时长</th><th>歌手</th><th class="th-a"></th><th class="th-a"></th>' +
+            '</tr>' +
+            '<tr v-for="(site,index) in playList">' +
+                '<td class="songId">{{++index}}</td>' +
+                '<td class="songName" class="th-b"><div>{{site["song_name"]}}</div></td>' +
+                '<td class="songDuration">{{site["song_duration"]}}</td>' +
+                '<td class="songSinger" class="th-b"><div>{{site["song_singer"]}}</div></td>' +
+                '<td class="songPlay"><a @click="playId=site.song_id">播放</a></td>' +
+                '<td class="songCollect" @click="musicCollect(site.song_id)"><a>收藏</a></td>' +
+            '</tr>' +
+            '</table>' +
+            '</div>' +
+            '</div>',
+        methods : {
+            //播放音乐
+            playSong() {
+                this.playStatus = !this.playStatus;
+                this.playStatus?(this.$refs.audio.play(),this.setTimer()):(this.$refs.audio.pause(),this.clearTimer());
+            },
+            //格式化播放时间
+            formatTime(string) {
+                var minutes = parseInt(string / 60);
+                var seconds = parseInt(string % 60);
+                if (seconds<10){
+                    seconds = "0" + seconds;
+                }
+                return minutes + ":" + seconds;
+            },
+            //更新进度条
+            getSongbar() {
+                this.current = this.formatTime(this.$refs.audio.currentTime);
+                this.playBar.width = this.$refs.audio.currentTime/this.$refs.audio.duration*100 + "%";
+                this.playEnded = this.$refs.audio.ended;
+            },
+            //进度条跳转
+            skipBar(e) {
+                this.barWidth = this.$refs.bar.clientWidth;
+                this.playBar.width = e.offsetX/this.barWidth*100 + "%";
+                this.$refs.audio.currentTime = e.offsetX/this.barWidth*this.$refs.audio.duration;
+                console.log(this.$refs.audio.currentTime);
+            },
+            //设置定时器
+            setTimer() {
+                this.clearTimer();
+                this.Timer = setInterval(this.getSongbar,1000);
+            },
+            //清除定时器
+            clearTimer() {
+                clearInterval(this.Timer);
+                this.Timer = "";
+                console.log("clearTimer");
+            },
+            musicCollect(songid) {
+                this.$emit('musiccollect',{data:songid});
+            },
+            showControl() {
+                $(".musicControl").slideUp("slow");
+            },
+            //播放下一首
+            playNext() {
+                this.playBar.width=0;
+                this.current="0:00";
+                this.playOrder = this.idList.indexOf(this.playId)+1;
+                if (this.playOrder==this.idList.length) {
+                    this.playId = this.idList[0];
+                }
+                else {
+                    this.playId = this.idList[this.playOrder];
+                }
+            },
+            //播放上一首
+            playPrev() {
+                this.playBar.width=0;
+                this.current="0:00";
+                this.playOrder = this.idList.indexOf(this.playId);
+                if (this.idList.indexOf(this.playId)==0) {
+                    this.playOrder = this.idList.length-1;
+                    this.playId = this.idList[this.playOrder];
+                }
+                else {
+                    this.playOrder = this.idList.indexOf(this.playId)-1;
+                    this.playId = this.idList[this.playOrder];
+                }
+            },
+            gotoSongdetails(id) {this.$router.push({path: '/songDetails', query: {id: id}});}
+        },
+        watch: {
+            message() {
+                this.playId = this.message;
+            },
+            listmessage() {
+                for (let i=0;i<this.listmessage.length;i++) {
+                    this.playList.push(this.listmessage[i]);
+                    this.idList.push(this.playList[i].song_id);
+                }
+                console.log(this.playList)
+                this.playId = this.playList[0].song_id;
+            },
+            playId(){
+                this.playBar.width=0;
+                this.current="0:00";
+                axios
+                    .get('PlayContent.php',{
+                        params : {songid: this.playId}
+                    })
+                    .then(response => (this.playContent=response.data))
+                    .catch(function (error) {
+                        console.log(error)
+                    });
+            },
+            playContent(){
+                this.playStatus = true;
+                if (this.idList.indexOf(this.playContent.song_id)==-1) {  //判断当前歌曲是否在播放列表中
+                    this.idList.push(this.playContent.song_id);  //添加当前歌曲id到id列表中
+                    this.playList.push(this.playContent);  //添加当前歌曲信息到播放列表中
+                }
+                this.$refs.audio.src = this.playContent.song_url;
+                this.$refs.audio.play();
+                this.setTimer(); //开启定时器
+            },
+            playEnded() {
+                if(this.playEnded==true) {
+                    console.log("播放状态："+this.playEnded);
+                    console.log("id列表："+this.idList);
+                    console.log("当前播放id:"+this.playId);
+                    this.playNext();
+                }
+            }
+        }
+    };
+    //收藏歌曲组件
+    const collectSong = {
+        props: ["songid"],
+        data() {
+            return {
+                songList : '',
+                collectShow : false
+            }
+        },
+        template: '<div class="collectSong" v-if="collectShow">' +
+            '<div class="listTitle">选择歌单<span class="close" @click="collectShow=!collectShow" >&times;</span></div>' +
+            '<div class="cS-list">' +
+                '<div class="choiceList" v-for="site in songList" @click="collectFor(site.songmenu_id)">' +
+                '<div class="cS-cover"><img :src="site.songmenu_cover"></div>' +
+                '<div class="cS-name">{{site.songmenu_name}}</div>' +
+                '</div>' +
+            '</div>' +
+            '</div>',
+        methods: {
+            createdList() {
+                axios
+                    .get('LoadUserCreated.php', {
+                        params: {userid: $.cookie("userid")}
+                    })
+                    .then(response => (this.songList = response.data))
+                    .catch(function (error) {
+                        console.log(error)
+                    });
+            },
+            collectFor(id) {
+                axios
+                    .get('UserCollectSong.php',{
+                        params : {songid : this.songid, songmenuid : id}
+                    })
+                    .then(response => (alert(response.data),this.collectShow=false))
+                    .catch(function (error) {
+                        console.log(error)
+                    })
+            }
+        },
+        watch: {
+            songid() {
+                this.createdList();
+                this.collectShow = true;
+            }
+        }
+    };
+    //分享动态组件
+    const musicShare = {
+        props:["share","sharesong","sharesonglist"],
+        data(){
+          return {
+              modalStatus: false, //弹窗状态
+              contentStatus: false, //内容编辑状态，false为文本编辑，true为歌曲选择
+              addContent: '点击添加音乐', //
+              contentText: '', //发布的文本内容
+              contentSearch: '', //查询音乐列表
+              searchRang: 'song',
+              searchList: '',
+              searchSongid: null, //选择的歌曲/歌单id
+              searchListid: null
+          }
+        },
+        template://发布动态模块
+            '<div class="moment-issue-div" v-if="modalStatus">' +
+            '<div class="modal-content">' +
+            '<div class="listTitle">发布动态<span class="close" @click="closeShare">&times;</span></div>' +
+            '<div class="moment-issue-content">' +
+            '<textarea class="moment-issue-text" v-show="!contentStatus" v-model="contentText"></textarea>' +
+            '<div class="moment-issue-music" v-show="!contentStatus" @click="contentStatus=!contentStatus">{{addContent}}</div>' +
+            '<!-- 动态添加音乐 -->' +
+            '<div class="music-choice-div" v-show="contentStatus">' +
+            '<input placeholder="输入您要搜索的内容" v-model="contentSearch">' +
+            '<div class="music-content-title">' +
+            '<div class="music-content-song" style="border-right: 1px #5c5c5c solid" @click="searchRang=\'song\'">歌曲</div>' +
+            '<div class="music-content-songmenu" @click="searchRang=\'songmenu\'">歌单</div>' +
+            '</div>' +
+            '<div class="music-content">' +
+            '<div class="contentList" v-if="searchRang==\'song\'" v-for="site in searchList" @click="choiceSong(site)">' +
+            '<div>{{site.song_name}}</div><div>{{site.song_singer}}</div>' +
+            '</div>' +
+            '<div class="contentList" v-if="searchRang==\'songmenu\'" v-for="site in searchList" @click="choiceList(site)">' +
+            '<div>{{site.songmenu_name}}</div><div>by {{site.user_name}}</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="moment-btn" v-if="!contentStatus" @click="issueMoment">发 布</div>' +
+            '<div class="moment-btn" v-if="contentStatus" @click="cancelChoice">取 消</div>' +
+            '</div>' +
+            '</div>',
+        methods: {
+            //发布动态
+            issueMoment() {
+                if (this.contentText=='') {
+                    alert("文本内容不能为空！");
+                }
+                else {
+                    axios
+                        .get('UserIssueMoment.php',{
+                            params : {
+                                moment_content: this.contentText,
+                                moment_song : this.searchSongid,
+                                moment_songmenu : this.searchListid
+                            }
+                        })
+                        .then(response => (
+                            this.$emit('shareresult',{data:response.data}),
+                                alert(response.data))
+                        )
+                        .catch(function (error) {
+                            console.log(error)
+                        });
+                    this.closeShare();
+                }
+            },
+            //查找歌曲
+            searchSong() {
+                axios
+                    .get('SearchSong.php',{
+                        params : {content: this.contentSearch}
+                    })
+                    .then(response => (this.searchList=response.data))
+                    .catch(function (error) {
+                        console.log(error)
+                    });
+            },
+            //查找歌单
+            searchSonglist() {
+                axios
+                    .get('SearchSongList.php',{
+                        params : {content: this.contentSearch}
+                    })
+                    .then(response => (this.searchList=response.data))
+                    .catch(function (error) {
+                        console.log(error)
+                    });
+            },
+
+            //选择歌曲
+            choiceSong(obj) {
+                this.addContent = obj.song_name + " - " + obj.song_singer;
+                this.searchListid = null;
+                this.searchSongid = obj.song_id;
+                this.contentStatus = !this.contentStatus;
+            },
+            //选择歌单
+            choiceList(obj) {
+                this.addContent = obj.songmenu_name + " - by" + obj.user_name;
+                this.searchSongid = null;
+                this.searchListid = obj.songmenu_id;
+                this.contentStatus = !this.contentStatus;
+            },
+            //取消选择
+            cancelChoice() {
+                this.contentStatus=!this.contentStatus;
+                this.addContent='点击添加音乐';
+                this.searchListid = null;
+                this.searchSongid = null;
+            },
+            //关闭弹窗
+            closeShare() {
+                this.contentText = '';
+                this.searchListid = null;
+                this.searchSongid = null;
+                this.addContent='点击添加音乐';
+                this.modalStatus=false;
+            }
+        },
+        watch: {
+            share() {
+                this.modalStatus = true;
+                this.shareReturn=false;
+                if (this.sharesong!='') {
+                    this.choiceSong(this.sharesong);
+                    this.contentStatus = !this.contentStatus;
+                }
+                if (this.sharesonglist!='') {
+                    this.choiceList(this.sharesonglist);
+                    this.contentStatus = !this.contentStatus;
+                }
+            },
+            contentSearch() {
+                if (this.searchRang=='song') {
+                    this.searchSong();
+                }
+                else {
+                    this.searchSonglist();
+                }
+            },
+            searchRang() {
+                if (this.searchRang=='song') {
+                    this.searchSong();
+                }
+                else {
+                    this.searchSonglist();
+                }
+            }
+        }
+    };
+
+    //路由
+    const routes = [
+        {path: '/', redirect: '/index'},
+        {path: '/index', component: index},
+        {path: '/SongPage', component: SongPage},
+        {path: '/UserMusic', component: UserMusic},
+        {path: '/SongList', component: SongList},
+        {path: '/MomentPage', component: MomentPage},
+        {path: '/UserPage', component: UserPage},
+        {path: '/songListdetails', component: songListdetails},
+        {path: '/songDetails', component: songDetails},
+        {path: '/editProfile', component: editProfile},
+        {path: '/editSonglist', component: editSonglist},
+        {path: '/searchResult', component: searchResult}
+    ];
+    const router = new VueRouter({
+        routes // （缩写）相当于 routes: routes
+    });
+
+    //挂载根实例
+    const app = new Vue({
+        el: '#app',
+        router,
+        data: {
+            point: returnCitySN["cip"]+','+returnCitySN["cname"],
+            status : false,  //登录状态
+            user : [],
+            playId : "", //播放的歌曲id
+            playMsg: "",
+            playList : "",
+            collectId : "", //收藏的歌曲id
+            createdList: "", //创建的歌单列表
+            controlShow: false,
+            shareStatus : '', //
+            shareSong : '', //分享歌曲
+            shareSonglist : '', //分享歌单
+            shareResult : false, //分享结果
+            searchAll: '',  //搜索
+            upRand: ''
+        },
+        methods: {
+            userStatus() {
+                if ($.cookie('userid') != undefined) {
+                    this.status = true;
+                    axios
+                        .get('LoadUserInformation.php',{params: {userid: $.cookie('userid')}})
+                        .then(response => (this.user=response.data))
+                        .catch(function (error) {
+                            console.log(error)
+                        })
+                }
+            },
+            logout() {
+                axios
+                    .get('UserLogout.php')
+                    .then(
+                        this.user = [],
+                        this.status = false,this.clearCookie(),
+                        this.$router.push('/index'),
+                        sessionStorage.removeItem('useMG')
+                    )
+                    .catch(function (error) {
+                        console.log(error)
+                    })
+            },
+            clearCookie() {
+                var keys=document.cookie.match(/[^ =;]+(?=\=)/g);
+                if (keys) {
+                    for (var i = keys.length; i--;)
+                        document.cookie=keys[i]+'=0;expires=' + new Date( 0).toUTCString()
+                }
+            },
+            play(data) {
+                this.playId = data.data;
+            },
+            listplay(data) {
+                this.playList = data.data;
+            },
+            collect(data) {
+                if (this.status===false) {
+                    alert("登陆后使用该功能！");
+                }
+                else {
+                    this.collectId = data.data;
+                }
+            },
+            share(data) {
+                this.shareStatus = data.data;
+                this.shareSong = data.song;
+                this.shareSonglist = data.songlist;
+            },
+            shareresult(data) {
+                if (data.data=="发布成功") {
+                    this.shareResult = Math.random();
+                }
+            },
+            sendDatapoint() {
+                if(sessionStorage.getItem('useMG')==null) {
+                    let rand = Math.random();
+                    sessionStorage.setItem('useMG',rand);
+                    console.log(sessionStorage.getItem('useMG'));
+                    axios
+                        .get('GetDataPoint.php',{params:{content:this.point}})
+                        .then(response=>(console.log(response.data)))
+                }
+            },
+            gotoUserpage() {
+                this.$router.push({path: "/UserPage", query: {userid: $.cookie("userid")}})
+                this.upRand = Math.random();
+            }
+        },
+        watch: {
+            playId() {
+                this.controlShow=true;
+            },
+            playList() {
+                this.controlShow=true;
+            }
+        },
+        mounted() {
+            this.userStatus();
+
+            this.sendDatapoint();
+        },
+        components: {
+            'music-control' : musicControl,
+            'collect-song' : collectSong,
+            'music-share' : musicShare
+        }
+    });
+    router.beforeEach((to,from,next)=>{
+        if(to.path == '/index'){
+            next();
+        }
+        else {
+            if ($.cookie("userid")===undefined) {
+                alert("登陆后使用该功能！");
+            }
+            else {
+                next();
+            }
+        }
+    })
+
+</script>
+</html>

@@ -1,5 +1,6 @@
-# MGmusic
-MGmusic 音乐网站设计与实现
+音乐网站设计与实现
+
+[mgmusic.xyz]: 项目地址
 
 php接口正在进行整理中...
 
